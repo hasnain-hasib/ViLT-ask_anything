@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Question Answering App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 20px;
+        }
+
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column
+            margin-bottom 20px;
+        }
+
+        input[type="text"], input[type="file"] {
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            margin: 100;
+        }
+
+        button {
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            margin: 100px;
+        }
+
+        #answerResult {
+            margin-top: 20px;
+            font-weight: bold;
+            margin: 100px;
+        }
+    </style>
+
+</head>
+
+<body>
+    <div class="container">
+        <h1>Question Answering test App</h1>
+        <form id="questionForm">
+            <input type="text" id="question" name="question" placeholder="Enter your question" required>
+            <input type="file" id="image" name="image" accept="image/*" required>
+            <button type="submit">Get Answer</button>
+            <div id="voiceInputControls">
+                <button type="button" id="voiceInput">Voice Input</button>
+                <button type="button" id="pauseVoiceInput" disabled>Pause</button>
+                <button type="button" id="resumeVoiceInput" disabled>Resume</button>
+                <span id="voiceInputIndicator"></span>
+            </div>
+        </form>
+        <div id="answerResult"></div>
+    </div>
+
+    <script>
+        document.getElementById('questionForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            const question = formData.get('question');
+            const imageFile = formData.get('image');
+
+            try {
+                const response = await fetch('/ask', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('Error getting answer');
+                }
+
+                const data = await response.json();
+                document.getElementById('answerResult').innerText = `Answer: ${data.answer}`;
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        });
+
+        const voiceInput = document.getElementById('voiceInput');
+        const pauseVoiceInput = document.getElementById('pauseVoiceInput');
+        const resumeVoiceInput = document.getElementById('resumeVoiceInput');
+        const voiceInputIndicator = document.getElementById('voiceInputIndicator');
+        const recognition = new webkitSpeechRecognition();
+
+        recognition.continuous = true;
+        recognition.interimResults = true;
+
+        recognition.onresult = function(event) {
+            const transcript = event.results[event.results.length - 1][0].transcript;
+            document.getElementById('question').value = transcript;
+        }
+
+        recognition.onstart = function() {
+            voiceInputIndicator.textContent = 'Voice input active';
+            voiceInput.disabled = true;
+            pauseVoiceInput.disabled = false;
+            resumeVoiceInput.disabled = true;
+        }
+
+        recognition.onend = function() {
+            voiceInputIndicator.textContent = '';
+            voiceInput.disabled = false;
+            pauseVoiceInput.disabled = true;
+            resumeVoiceInput.disabled = true;
+        }
+
+        voiceInput.addEventListener('click', function() {
+            recognition.start();
+        });
+
+        pauseVoiceInput.addEventListener('click', function() {
+            recognition.pause();
+            voiceInputIndicator.textContent = 'Voice input paused';
+            pauseVoiceInput.disabled = true;
+            resumeVoiceInput.disabled = false;
+        });
+
+        resumeVoiceInput.addEventListener('click', function() {
+            recognition.resume();
+            voiceInputIndicator.textContent = 'Voice input active';
+            pauseVoiceInput.disabled = false;
+            resumeVoiceInput.disabled = true;
+        });
+    </script>
+</body>
+</html>
